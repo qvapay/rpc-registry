@@ -25,7 +25,7 @@ jobs:
       - run: npm ci
       # En PR/push un endpoint caído es error (no se acepta añadir nodos rotos).
       # En el cron solo falla si una cadena queda con menos de 2 RPCs sanos.
-      - run: npm run check -- ${{ github.event_name == 'schedule' && '' || '--strict' }}
+      - run: npm run check -- ${{ github.event_name != 'schedule' && '--strict' || '' }}
       - if: failure() && github.event_name == 'schedule'
         uses: actions/github-script@v9
         with:
