@@ -19,22 +19,22 @@
 
   <!-- nodos -->
   <g stroke="#22d3ee" stroke-opacity="0.55" stroke-width="2" fill="none">
-    <line x1="960" y1="300" x2="1080" y2="200"/>
-    <line x1="960" y1="300" x2="1120" y2="330"/>
-    <line x1="960" y1="300" x2="1040" y2="440"/>
-    <line x1="1080" y1="200" x2="1120" y2="330"/>
-    <line x1="1120" y1="330" x2="1040" y2="440"/>
-    <line x1="1040" y1="440" x2="900" y2="470"/>
-    <line x1="960" y1="300" x2="900" y2="470"/>
+    <line x1="1020" y1="240" x2="1140" y2="140"/>
+    <line x1="1020" y1="240" x2="1180" y2="270"/>
+    <line x1="1020" y1="240" x2="1100" y2="380"/>
+    <line x1="1140" y1="140" x2="1180" y2="270"/>
+    <line x1="1180" y1="270" x2="1100" y2="380"/>
+    <line x1="1100" y1="380" x2="960" y2="410"/>
+    <line x1="1020" y1="240" x2="960" y2="410"/>
   </g>
   <g fill="#0b1220" stroke="url(#accent)" stroke-width="4">
-    <circle cx="960" cy="300" r="26"/>
-    <circle cx="1080" cy="200" r="16"/>
-    <circle cx="1120" cy="330" r="16"/>
-    <circle cx="1040" cy="440" r="16"/>
-    <circle cx="900" cy="470" r="16"/>
+    <circle cx="1020" cy="240" r="26"/>
+    <circle cx="1140" cy="140" r="16"/>
+    <circle cx="1180" cy="270" r="16"/>
+    <circle cx="1100" cy="380" r="16"/>
+    <circle cx="960" cy="410" r="16"/>
   </g>
-  <circle cx="960" cy="300" r="10" fill="url(#accent)"/>
+  <circle cx="1020" cy="240" r="10" fill="url(#accent)"/>
 
   <!-- texto -->
   <rect x="80" y="92" width="8" height="120" rx="4" fill="url(#accent)"/>
