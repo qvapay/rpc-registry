@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#101c33"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#ffffff" stroke-opacity="0.045" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+  <circle cx="1090" cy="120" r="260" fill="#8b5cf6" fill-opacity="0.10"/>
+  <circle cx="1180" cy="560" r="200" fill="#22d3ee" fill-opacity="0.08"/>
+
+  <!-- nodos -->
+  <g stroke="#22d3ee" stroke-opacity="0.55" stroke-width="2" fill="none">
+    <line x1="960" y1="300" x2="1080" y2="200"/>
+    <line x1="960" y1="300" x2="1120" y2="330"/>
+    <line x1="960" y1="300" x2="1040" y2="440"/>
+    <line x1="1080" y1="200" x2="1120" y2="330"/>
+    <line x1="1120" y1="330" x2="1040" y2="440"/>
+    <line x1="1040" y1="440" x2="900" y2="470"/>
+    <line x1="960" y1="300" x2="900" y2="470"/>
+  </g>
+  <g fill="#0b1220" stroke="url(#accent)" stroke-width="4">
+    <circle cx="960" cy="300" r="26"/>
+    <circle cx="1080" cy="200" r="16"/>
+    <circle cx="1120" cy="330" r="16"/>
+    <circle cx="1040" cy="440" r="16"/>
+    <circle cx="900" cy="470" r="16"/>
+  </g>
+  <circle cx="960" cy="300" r="10" fill="url(#accent)"/>
+
+  <!-- texto -->
+  <rect x="80" y="92" width="8" height="120" rx="4" fill="url(#accent)"/>
+  <text x="112" y="140" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="30" font-weight="600" fill="#22d3ee" letter-spacing="6">QVAPAY</text>
+  <text x="112" y="200" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="78" font-weight="800" fill="#ffffff">rpc-registry</text>
+
+  <text x="112" y="280" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="30" fill="#c7d2fe">Fuente de verdad de a qué nodos hablan</text>
+  <text x="112" y="320" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="30" fill="#c7d2fe">las wallets self-custody de QvaPay.</text>
+
+  <!-- chips -->
+  <g font-family="Menlo, SF Mono, monospace" font-size="20" font-weight="600">
+    <rect x="112" y="380" width="128" height="44" rx="22" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.18"/>
+    <text x="176" y="409" text-anchor="middle" fill="#e2e8f0">Ethereum</text>
+    <rect x="252" y="380" width="86" height="44" rx="22" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.18"/>
+    <text x="295" y="409" text-anchor="middle" fill="#e2e8f0">BSC</text>
+    <rect x="350" y="380" width="120" height="44" rx="22" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.18"/>
+    <text x="410" y="409" text-anchor="middle" fill="#e2e8f0">Polygon</text>
+    <rect x="482" y="380" width="88" height="44" rx="22" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.18"/>
+    <text x="526" y="409" text-anchor="middle" fill="#e2e8f0">Base</text>
+    <rect x="582" y="380" width="92" height="44" rx="22" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.18"/>
+    <text x="628" y="409" text-anchor="middle" fill="#e2e8f0">TRON</text>
+    <rect x="686" y="380" width="112" height="44" rx="22" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.18"/>
+    <text x="742" y="409" text-anchor="middle" fill="#e2e8f0">Bitcoin</text>
+  </g>
+
+  <text x="112" y="500" font-family="Menlo, SF Mono, monospace" font-size="22" fill="#94a3b8">Un solo JSON · versionado · validado · health check cada 6 h · sin API keys</text>
+
+  <text x="112" y="570" font-family="Menlo, SF Mono, monospace" font-size="22" fill="#22d3ee">github.com/qvapay/rpc-registry</text>
+</svg>

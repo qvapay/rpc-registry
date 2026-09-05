@@ -1,11 +1,20 @@
 // Valida registry.json contra schema.json y hace health check a cada RPC habilitado.
-// Uso: node scripts/check.mjs [--no-network]
+// Uso: node scripts/check.mjs [--no-network] [--strict]
+//   --no-network  solo schema y reglas de negocio
+//   --strict      cualquier endpoint caído es error (para PR/push).
+//                 Sin --strict solo falla si una cadena queda con < 2 RPCs sanos (para el cron).
 import { readFile } from "node:fs/promises";
+import { setTimeout as sleep } from "node:timers/promises";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
 const NO_NET = process.argv.includes("--no-network");
+const STRICT = process.argv.includes("--strict");
 const TIMEOUT_MS = 8000;
+const ATTEMPTS = 3;
+const RETRY_DELAY_MS = 1500;
+const MIN_HEALTHY = 2;
+const MAX_LAG = 20;
 
 const registry = JSON.parse(await readFile(new URL("../registry.json", import.meta.url), "utf8"));
 const schema = JSON.parse(await readFile(new URL("../schema.json", import.meta.url), "utf8"));
@@ -81,11 +90,22 @@ async function probe(chainId, chain, rpc) {
   });
 }
 
-let failures = 0;
+// Reintenta para no marcar como caído un nodo con un fallo puntual de red.
+async function probeWithRetry(id, chain, rpc) {
+  let last;
+  for (let i = 1; i <= ATTEMPTS; i++) {
+    try { return { ...(await probe(id, chain, rpc)), attempts: i }; }
+    catch (e) { last = e; if (i < ATTEMPTS) await sleep(RETRY_DELAY_MS); }
+  }
+  throw last;
+}
+
+let down = 0;
+let chainsDown = 0;
 for (const [id, chain] of Object.entries(registry.chains)) {
   const results = await Promise.allSettled(
     chain.rpcs.filter((r) => r.enabled !== false).map(async (r) => {
-      try { return { r, ...(await probe(id, chain, r)) }; }
+      try { return { r, ...(await probeWithRetry(id, chain, r)) }; }
       catch (e) { throw new Error(`${r.url}  ${e?.message ?? e}`); }
     })
   );
@@ -94,14 +114,22 @@ for (const [id, chain] of Object.entries(registry.chains)) {
   console.log(`\n${id}`);
   for (const x of results) {
     if (x.status === "fulfilled") {
-      const lag = maxH - x.value.height;
-      const flag = lag > 20 ? "⚠️ " : "✅";
-      console.log(`  ${flag} ${x.value.r.url}  h=${x.value.height}  lag=${lag}  ${x.value.ms}ms`);
+      const { r, height, ms, attempts } = x.value;
+      const lag = maxH - height;
+      const flag = lag > MAX_LAG ? "⚠️ " : "✅";
+      const retried = attempts > 1 ? `  (${attempts} intentos)` : "";
+      console.log(`  ${flag} ${r.url}  h=${height}  lag=${lag}  ${ms}ms${retried}`);
     } else {
-      failures++;
-      console.log(`  ❌ ${x.reason?.message ?? x.reason}`);
+      down++;
+      console.log(`  ❌ ${x.reason?.message ?? x.reason}  (tras ${ATTEMPTS} intentos)`);
     }
   }
-  if (ok.length < 2) { console.error(`❌ ${id}: menos de 2 RPCs sanos`); failures++; }
+  if (ok.length < MIN_HEALTHY) { console.error(`❌ ${id}: menos de ${MIN_HEALTHY} RPCs sanos`); chainsDown++; }
 }
-process.exit(failures ? 1 : 0);
+
+console.log("");
+if (chainsDown) { console.error(`❌ ${chainsDown} cadena(s) sin RPCs suficientes`); process.exit(1); }
+if (down && STRICT) { console.error(`❌ ${down} endpoint(s) caído(s) y --strict activo`); process.exit(1); }
+if (down) console.warn(`⚠️  ${down} endpoint(s) caído(s), pero todas las cadenas tienen ≥ ${MIN_HEALTHY} sanos`);
+else console.log("✅ todos los endpoints habilitados responden");
+process.exit(0);
