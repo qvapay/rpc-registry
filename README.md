@@ -114,9 +114,12 @@ const rpcsFor = (reg, chain) =>
 
 ```bash
 npm ci
-npm run check          # schema + reglas + health check de red
-npm run check:schema   # solo schema y reglas, sin red
+npm run check              # schema + reglas + health check de red (tolerante)
+npm run check -- --strict  # igual, pero cualquier endpoint caído es error (lo que corre en cada PR)
+npm run check:schema       # solo schema y reglas, sin red
 ```
+
+Cada endpoint se prueba hasta 3 veces antes de darlo por caído. En modo tolerante, que es el que usa el cron cada 6 h, solo falla si una cadena queda con menos de 2 RPCs sanos; así un nodo público con un fallo puntual no abre issues falsos.
 
 Salida típica de `npm run check`:
 
