@@ -7,6 +7,9 @@
 // Un endpoint que responde pero va más de MAX_LAG bloques por detrás del resto cuenta como caído:
 // para una wallet un nodo parado es peor que uno muerto (muestra saldos viejos y rechaza nonces).
 // Las sondas van por un pool de CONCURRENCY para no disparar rate limits con ráfagas.
+// Un 429 (rate limit) o un desafío de Cloudflare (403/503 con HTML) a la IP del runner NO es un nodo
+// caído: el servidor está vivo pero no atiende a ESTA IP. Se reportan aparte (⏳/🛡️), no cuentan como
+// sanos y no rompen --strict; solo cuenta como caído lo que no responde o responde mal.
 import { readFile } from "node:fs/promises";
 import { setTimeout as sleep } from "node:timers/promises";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -21,6 +24,7 @@ const RETRY_DELAY_MS = 1500;
 const MIN_HEALTHY = 2;
 const MAX_LAG = 20;
 const CONCURRENCY = 6;
+const MAX_RETRY_AFTER_MS = 10000;
 const ESPLORA_PROBE_ADDRESS = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"; // vector de prueba de BIP-173, casi sin UTXOs
 
 const registry = JSON.parse(await readFile(new URL("../registry.json", import.meta.url), "utf8"));
@@ -69,6 +73,23 @@ async function pool(items, n, fn) {
   return out;
 }
 
+// Fallo "blando": el endpoint vive pero rechaza a esta IP (rate limit o desafío anti-bot).
+class SoftError extends Error {
+  constructor(kind, message, retryAfterMs = 0) { super(message); this.kind = kind; this.retryAfterMs = retryAfterMs; }
+}
+function classify(res) {
+  if (res.status === 429) {
+    const ra = Number(res.headers.get("retry-after"));
+    return new SoftError("throttled", "HTTP 429 rate limit", Number.isFinite(ra) ? Math.min(ra * 1000, MAX_RETRY_AFTER_MS) : 0);
+  }
+  const cf = res.headers.get("server") === "cloudflare" || res.headers.has("cf-mitigated");
+  const html = (res.headers.get("content-type") ?? "").includes("text/html");
+  if ((res.status === 403 || res.status === 503) && cf && (html || res.headers.has("cf-mitigated"))) {
+    return new SoftError("challenged", `HTTP ${res.status} desafío de Cloudflare`);
+  }
+  return null;
+}
+
 async function withTimeout(p) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
@@ -86,7 +107,7 @@ async function probe(chainId, chain, rpc) {
           headers: { "content-type": "application/json", ...(rpc.headers ?? {}) },
           body: JSON.stringify({ jsonrpc: "2.0", id, method, params: [] }),
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) throw classify(res) ?? new Error(`HTTP ${res.status}`);
         const j = await res.json();
         if (j?.error) throw new Error(`rpc error: ${j.error.message ?? JSON.stringify(j.error)}`);
         if (typeof j?.result !== "string") throw new Error(`respuesta inválida a ${method}`);
@@ -99,6 +120,7 @@ async function probe(chainId, chain, rpc) {
     }
     if (api === "trongrid") {
       const res = await fetch(`${rpc.url}/wallet/getnowblock`, { method: "POST", signal, headers: rpc.headers ?? {} });
+      if (!res.ok) throw classify(res) ?? new Error(`HTTP ${res.status}`);
       const j = await res.json();
       const h = j?.block_header?.raw_data?.number;
       if (!h) throw new Error("sin block_header");
@@ -106,12 +128,13 @@ async function probe(chainId, chain, rpc) {
     }
     if (api === "esplora") {
       const res = await fetch(`${rpc.url}/blocks/tip/height`, { signal, headers: rpc.headers ?? {} });
+      if (!res.ok) throw classify(res) ?? new Error(`HTTP ${res.status}`);
       const h = parseInt(await res.text(), 10);
       if (!Number.isFinite(h)) throw new Error("tip inválido");
       // Una wallet necesita el índice por dirección: hay instancias que sirven el tip pero
       // no /address/*/utxo (o lo capan a 0 UTXOs). Dirección con muy pocos UTXOs a propósito.
       const utxo = await fetch(`${rpc.url}/address/${ESPLORA_PROBE_ADDRESS}/utxo`, { signal, headers: rpc.headers ?? {} });
-      if (!utxo.ok) throw new Error(`sin índice de direcciones (HTTP ${utxo.status} en /address/*/utxo)`);
+      if (!utxo.ok) throw classify(utxo) ?? new Error(`sin índice de direcciones (HTTP ${utxo.status} en /address/*/utxo)`);
       if (!Array.isArray(await utxo.json())) throw new Error("respuesta inválida en /address/*/utxo");
       return { height: h, ms: Date.now() - started };
     }
@@ -124,19 +147,20 @@ async function probeWithRetry(id, chain, rpc) {
   let last;
   for (let i = 1; i <= ATTEMPTS; i++) {
     try { return { ...(await probe(id, chain, rpc)), attempts: i }; }
-    catch (e) { last = e; if (i < ATTEMPTS) await sleep(RETRY_DELAY_MS); }
+    catch (e) { last = e; if (i < ATTEMPTS) await sleep(Math.max(RETRY_DELAY_MS, e?.retryAfterMs ?? 0)); }
   }
   throw last;
 }
 
 let down = 0;
 let lagging = 0;
+let soft = 0;
 let chainsDown = 0;
 for (const [id, chain] of Object.entries(registry.chains)) {
   if (ONLY && id !== ONLY) continue;
   const results = await pool(chain.rpcs.filter((r) => r.enabled !== false), CONCURRENCY, async (r) => {
     try { return { status: "fulfilled", value: { r, ...(await probeWithRetry(id, chain, r)) } }; }
-    catch (e) { return { status: "rejected", reason: new Error(`${r.url}  ${e?.message ?? e}`) }; }
+    catch (e) { return { status: "rejected", soft: e instanceof SoftError ? e.kind : null, reason: new Error(`${r.url}  ${e?.message ?? e}`) }; }
   });
   const ok = results.filter((x) => x.status === "fulfilled").map((x) => x.value);
   // Altura de referencia: mediana de los que responden, para que un solo nodo adelantado
@@ -157,6 +181,10 @@ for (const [id, chain] of Object.entries(registry.chains)) {
         healthy++;
         console.log(`  ✅ ${r.url}  h=${height}  lag=${Math.max(lag, 0)}  ${ms}ms${retried}`);
       }
+    } else if (x.soft) {
+      soft++;
+      const icon = x.soft === "throttled" ? "⏳" : "🛡️ ";
+      console.log(`  ${icon} ${x.reason?.message ?? x.reason}  (tras ${ATTEMPTS} intentos; vivo, pero no atiende a esta IP)`);
     } else {
       down++;
       console.log(`  ❌ ${x.reason?.message ?? x.reason}  (tras ${ATTEMPTS} intentos)`);
@@ -168,7 +196,8 @@ for (const [id, chain] of Object.entries(registry.chains)) {
 console.log("");
 const failed = down + lagging;
 if (chainsDown) { console.error(`❌ ${chainsDown} cadena(s) sin RPCs suficientes`); process.exit(1); }
+if (soft) console.warn(`⏳ ${soft} endpoint(s) rechazaron a esta IP (rate limit / desafío anti-bot); no cuentan como caídos`);
 if (failed && STRICT) { console.error(`❌ ${down} endpoint(s) caído(s) y ${lagging} parado(s), y --strict activo`); process.exit(1); }
 if (failed) console.warn(`⚠️  ${down} endpoint(s) caído(s) y ${lagging} parado(s), pero todas las cadenas tienen ≥ ${MIN_HEALTHY} sanos`);
-else console.log("✅ todos los endpoints habilitados responden y están al día");
+else console.log(`✅ todos los endpoints que atienden a esta IP responden y están al día`);
 process.exit(0);

@@ -143,7 +143,7 @@ ethereum
   ⚠️  https://1rpc.io/eth                 h=23412851  lag=25 1204ms
 ```
 
-`⚠️` marca un endpoint parado (más de 20 bloques por detrás de la mediana) y `❌` uno caído; ambos cuentan como no sanos. Si quedan menos de 2 sanos en una cadena, el check falla.
+`⚠️` marca un endpoint parado (más de 20 bloques por detrás de la mediana) y `❌` uno caído; ambos cuentan como no sanos. `⏳` (HTTP 429) y `🛡️` (desafío de Cloudflare) marcan endpoints vivos que rechazan la IP desde la que corre el check — típico con los runners de GitHub —; no cuentan como sanos pero tampoco rompen `--strict`, porque un cliente real con su propia IP sí los usa. Si quedan menos de 2 sanos en una cadena, el check falla.
 
 ## 🤝 Contribuir
 
