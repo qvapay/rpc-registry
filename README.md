@@ -34,7 +34,7 @@ Sin API keys. Sin backend. Sin sorpresas.
 | Cadena | Tipo | Chain ID | Nativo | Tokens | RPCs públicos | Operadores | Explorador |
 |---|---|---:|---|---|---:|---:|---|
 | Ethereum | `evm` | 1 | ETH | USDT, USDC | 28 | 28 | [etherscan.io](https://etherscan.io) |
-| BNB Smart Chain | `evm` | 56 | BNB | USDT, USDC | 34 | 22 | [bscscan.com](https://bscscan.com) |
+| BNB Smart Chain | `evm` | 56 | BNB | USDT, USDC | 34 | 21 | [bscscan.com](https://bscscan.com) |
 | Polygon PoS | `evm` | 137 | POL | USDT, USDC, USDC.e | 18 | 14 | [polygonscan.com](https://polygonscan.com) |
 | Base | `evm` | 8453 | ETH | USDC, USDT | 22 | 20 | [basescan.org](https://basescan.org) |
 | TRON | `tron` | 728126428 | TRX | USDT, USDC | 5 | 3 | [tronscan.org](https://tronscan.org) |
