@@ -1,7 +1,7 @@
 {
   "$schema": "./schema.json",
   "version": 4,
-  "updated_at": "2026-09-08T17:12:19Z",
+  "updated_at": "2026-09-08T17:15:23Z",
   "chains": {
     "ethereum": {
       "kind": "evm",
@@ -165,11 +165,6 @@
           "url": "https://rpc-eth.blockmachine.io",
           "priority": 270,
           "owner": "blockmachine"
-        },
-        {
-          "url": "https://rpc.swiftnodes.io/rpc/eth",
-          "priority": 280,
-          "owner": "swiftnodes"
         }
       ]
     },
@@ -743,14 +738,8 @@
           "api": "esplora"
         },
         {
-          "url": "https://mempool.sethforprivacy.com/api",
-          "priority": 60,
-          "owner": "sethforprivacy",
-          "api": "esplora"
-        },
-        {
           "url": "https://mempool.bitcoin-21.org/api",
-          "priority": 70,
+          "priority": 60,
           "owner": "bitcoin-21",
           "api": "esplora"
         }
