@@ -1,7 +1,7 @@
 {
   "$schema": "./schema.json",
   "version": 4,
-  "updated_at": "2026-09-08T16:57:07Z",
+  "updated_at": "2026-09-08T17:12:19Z",
   "chains": {
     "ethereum": {
       "kind": "evm",
@@ -170,11 +170,6 @@
           "url": "https://rpc.swiftnodes.io/rpc/eth",
           "priority": 280,
           "owner": "swiftnodes"
-        },
-        {
-          "url": "https://api.uniblock.dev/uni/v1/json-rpc?chainId=1",
-          "priority": 290,
-          "owner": "uniblock"
         }
       ]
     },
@@ -375,11 +370,6 @@
           "url": "https://rpc.swiftnodes.io/rpc/bsc",
           "priority": 340,
           "owner": "swiftnodes"
-        },
-        {
-          "url": "https://api.uniblock.dev/uni/v1/json-rpc?chainId=56",
-          "priority": 350,
-          "owner": "uniblock"
         }
       ]
     },
@@ -502,13 +492,8 @@
           "owner": "blockmachine"
         },
         {
-          "url": "https://api.uniblock.dev/uni/v1/json-rpc?chainId=137",
-          "priority": 180,
-          "owner": "uniblock"
-        },
-        {
           "url": "https://rpc.swiftnodes.io/rpc/polygon",
-          "priority": 190,
+          "priority": 180,
           "owner": "swiftnodes"
         }
       ]
@@ -650,11 +635,6 @@
           "url": "https://rpc.swiftnodes.io/rpc/base",
           "priority": 220,
           "owner": "swiftnodes"
-        },
-        {
-          "url": "https://api.uniblock.dev/uni/v1/json-rpc?chainId=8453",
-          "priority": 230,
-          "owner": "uniblock"
         }
       ]
     },
@@ -712,12 +692,6 @@
           "priority": 110,
           "owner": "publicnode",
           "api": "jsonrpc"
-        },
-        {
-          "url": "https://tron.drpc.org",
-          "priority": 120,
-          "owner": "drpc",
-          "api": "jsonrpc"
         }
       ]
     },
@@ -763,26 +737,20 @@
           "api": "esplora"
         },
         {
-          "url": "https://btcscan.org/api",
-          "priority": 50,
-          "owner": "btcscan",
-          "api": "esplora"
-        },
-        {
           "url": "https://mempool.ninja/api",
-          "priority": 60,
+          "priority": 50,
           "owner": "mempool-ninja",
           "api": "esplora"
         },
         {
           "url": "https://mempool.sethforprivacy.com/api",
-          "priority": 70,
+          "priority": 60,
           "owner": "sethforprivacy",
           "api": "esplora"
         },
         {
           "url": "https://mempool.bitcoin-21.org/api",
-          "priority": 80,
+          "priority": 70,
           "owner": "bitcoin-21",
           "api": "esplora"
         }

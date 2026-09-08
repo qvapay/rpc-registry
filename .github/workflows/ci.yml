@@ -20,12 +20,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with: { fetch-depth: 2 }
       - uses: actions/setup-node@v7
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      # En PR/push un endpoint caído es error (no se acepta añadir nodos rotos).
-      # En el cron solo falla si una cadena queda con menos de 2 RPCs sanos.
-      - run: npm run check -- ${{ github.event_name == 'schedule' && '' || '--strict' }}
+      # Baseline = registry.json antes del cambio (base de la PR, o el commit anterior en push).
+      # Con --strict solo es error un endpoint NUEVO que no responda: lo que ya estaba y falle
+      # se avisa y lo vigila el cron, que abre issue si una cadena se queda sin 2 sanos.
+      - if: github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          git show "origin/${{ github.base_ref }}:registry.json" > /tmp/registry.base.json
+      - if: github.event_name == 'push'
+        run: git show HEAD~1:registry.json > /tmp/registry.base.json || cp registry.json /tmp/registry.base.json
+      - run: npm run check -- ${{ github.event_name == 'schedule' && '' || '--strict --baseline=/tmp/registry.base.json' }}
       - if: failure() && github.event_name == 'schedule'
         uses: actions/github-script@v9
         with:

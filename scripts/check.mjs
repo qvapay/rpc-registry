@@ -1,8 +1,11 @@
 // Valida registry.json contra schema.json y hace health check a cada RPC habilitado.
-// Uso: node scripts/check.mjs [--no-network] [--strict] [--chain=<id>]
+// Uso: node scripts/check.mjs [--no-network] [--strict] [--baseline=<registry.json>] [--chain=<id>]
 //   --no-network  solo schema y reglas de negocio
-//   --strict      cualquier endpoint caído es error (para PR/push).
+//   --strict      un endpoint caído es error (para PR/push).
 //                 Sin --strict solo falla si una cadena queda con < 2 RPCs sanos (para el cron).
+//   --baseline=f  con --strict, solo son error los endpoints que NO estaban en ese registro
+//                 (el de main): lo nuevo tiene que responder, lo viejo que falle se avisa y lo
+//                 vigila el cron. Sin baseline, todo fallo es error.
 //   --chain=<id>  sondea solo esa cadena (p. ej. --chain=polygon).
 // Un endpoint que responde pero va más de MAX_LAG bloques por detrás del resto cuenta como caído:
 // para una wallet un nodo parado es peor que uno muerto (muestra saldos viejos y rechaza nonces).
@@ -18,6 +21,7 @@ import addFormats from "ajv-formats";
 const NO_NET = process.argv.includes("--no-network");
 const STRICT = process.argv.includes("--strict");
 const ONLY = process.argv.find((a) => a.startsWith("--chain="))?.slice("--chain=".length);
+const BASELINE_PATH = process.argv.find((a) => a.startsWith("--baseline="))?.slice("--baseline=".length);
 const TIMEOUT_MS = 8000;
 const ATTEMPTS = 3;
 const RETRY_DELAY_MS = 1500;
@@ -28,6 +32,14 @@ const MAX_RETRY_AFTER_MS = 10000;
 const ESPLORA_PROBE_ADDRESS = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"; // vector de prueba de BIP-173, casi sin UTXOs
 
 const registry = JSON.parse(await readFile(new URL("../registry.json", import.meta.url), "utf8"));
+const baselineUrls = new Set();
+if (BASELINE_PATH) {
+  try {
+    const base = JSON.parse(await readFile(BASELINE_PATH, "utf8"));
+    for (const c of Object.values(base.chains ?? {})) for (const r of c.rpcs ?? []) baselineUrls.add(r.url);
+    console.log(`ℹ️  baseline: ${baselineUrls.size} URLs ya presentes en ${BASELINE_PATH}`);
+  } catch (e) { console.warn(`⚠️  no se pudo leer el baseline ${BASELINE_PATH}: ${e.message}; todo fallo será error`); }
+}
 const schema = JSON.parse(await readFile(new URL("../schema.json", import.meta.url), "utf8"));
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
@@ -155,12 +167,13 @@ async function probeWithRetry(id, chain, rpc) {
 let down = 0;
 let lagging = 0;
 let soft = 0;
+let preexisting = 0; // caídos/parados que ya estaban en el baseline
 let chainsDown = 0;
 for (const [id, chain] of Object.entries(registry.chains)) {
   if (ONLY && id !== ONLY) continue;
   const results = await pool(chain.rpcs.filter((r) => r.enabled !== false), CONCURRENCY, async (r) => {
     try { return { status: "fulfilled", value: { r, ...(await probeWithRetry(id, chain, r)) } }; }
-    catch (e) { return { status: "rejected", soft: e instanceof SoftError ? e.kind : null, reason: new Error(`${r.url}  ${e?.message ?? e}`) }; }
+    catch (e) { return { status: "rejected", url: r.url, soft: e instanceof SoftError ? e.kind : null, reason: new Error(`${r.url}  ${e?.message ?? e}`) }; }
   });
   const ok = results.filter((x) => x.status === "fulfilled").map((x) => x.value);
   // Altura de referencia: mediana de los que responden, para que un solo nodo adelantado
@@ -176,7 +189,8 @@ for (const [id, chain] of Object.entries(registry.chains)) {
       const retried = attempts > 1 ? `  (${attempts} intentos)` : "";
       if (lag > MAX_LAG) {
         lagging++;
-        console.log(`  ⚠️  ${r.url}  h=${height}  lag=${lag}  ${ms}ms${retried}  ← parado, cuenta como caído`);
+        if (baselineUrls.has(r.url)) preexisting++;
+        console.log(`  ⚠️  ${r.url}  h=${height}  lag=${lag}  ${ms}ms${retried}  ← parado, cuenta como caído${baselineUrls.has(r.url) ? " (ya estaba en main)" : ""}`);
       } else {
         healthy++;
         console.log(`  ✅ ${r.url}  h=${height}  lag=${Math.max(lag, 0)}  ${ms}ms${retried}`);
@@ -187,7 +201,9 @@ for (const [id, chain] of Object.entries(registry.chains)) {
       console.log(`  ${icon} ${x.reason?.message ?? x.reason}  (tras ${ATTEMPTS} intentos; vivo, pero no atiende a esta IP)`);
     } else {
       down++;
-      console.log(`  ❌ ${x.reason?.message ?? x.reason}  (tras ${ATTEMPTS} intentos)`);
+      const old = baselineUrls.has(x.url);
+      if (old) preexisting++;
+      console.log(`  ❌ ${x.reason?.message ?? x.reason}  (tras ${ATTEMPTS} intentos)${old ? "  (ya estaba en main)" : ""}`);
     }
   }
   if (healthy < MIN_HEALTHY) { console.error(`❌ ${id}: menos de ${MIN_HEALTHY} RPCs sanos`); chainsDown++; }
@@ -195,8 +211,14 @@ for (const [id, chain] of Object.entries(registry.chains)) {
 
 console.log("");
 const failed = down + lagging;
+const newFailed = failed - preexisting;
 if (chainsDown) { console.error(`❌ ${chainsDown} cadena(s) sin RPCs suficientes`); process.exit(1); }
 if (soft) console.warn(`⏳ ${soft} endpoint(s) rechazaron a esta IP (rate limit / desafío anti-bot); no cuentan como caídos`);
+if (STRICT && BASELINE_PATH && failed) {
+  if (preexisting) console.warn(`⚠️  ${preexisting} endpoint(s) que ya estaban en main fallan; los vigila el cron`);
+  if (newFailed) { console.error(`❌ ${newFailed} endpoint(s) NUEVOS caídos o parados, y --strict activo`); process.exit(1); }
+  console.log(`✅ todos los endpoints nuevos responden`); process.exit(0);
+}
 if (failed && STRICT) { console.error(`❌ ${down} endpoint(s) caído(s) y ${lagging} parado(s), y --strict activo`); process.exit(1); }
 if (failed) console.warn(`⚠️  ${down} endpoint(s) caído(s) y ${lagging} parado(s), pero todas las cadenas tienen ≥ ${MIN_HEALTHY} sanos`);
 else console.log(`✅ todos los endpoints que atienden a esta IP responden y están al día`);

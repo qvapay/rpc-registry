@@ -7,7 +7,7 @@
 [![check](https://github.com/qvapay/rpc-registry/actions/workflows/ci.yml/badge.svg)](https://github.com/qvapay/rpc-registry/actions/workflows/ci.yml)
 [![registry version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqvapay%2Frpc-registry%2Fmain%2Fregistry.json&query=%24.version&label=registry&color=blue)](registry.json)
 [![chains](https://img.shields.io/badge/chains-6-8A2BE2)](#-cadenas-soportadas)
-[![endpoints](https://img.shields.io/badge/endpoints-120-orange)](#-cadenas-soportadas)
+[![endpoints](https://img.shields.io/badge/endpoints-114-orange)](#-cadenas-soportadas)
 [![jsDelivr hits](https://data.jsdelivr.com/v1/package/gh/qvapay/rpc-registry/badge)](https://www.jsdelivr.com/package/gh/qvapay/rpc-registry)
 [![last commit](https://img.shields.io/github/last-commit/qvapay/rpc-registry)](https://github.com/qvapay/rpc-registry/commits/main)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#-contribuir)
@@ -33,16 +33,16 @@ Sin API keys. Sin backend. Sin sorpresas.
 
 | Cadena | Tipo | Chain ID | Nativo | Tokens | RPCs públicos | Operadores | Explorador |
 |---|---|---:|---|---|---:|---:|---|
-| Ethereum | `evm` | 1 | ETH | USDT, USDC | 29 | 29 | [etherscan.io](https://etherscan.io) |
-| BNB Smart Chain | `evm` | 56 | BNB | USDT, USDC | 35 | 23 | [bscscan.com](https://bscscan.com) |
-| Polygon PoS | `evm` | 137 | POL | USDT, USDC, USDC.e | 19 | 15 | [polygonscan.com](https://polygonscan.com) |
-| Base | `evm` | 8453 | ETH | USDC, USDT | 23 | 21 | [basescan.org](https://basescan.org) |
-| TRON | `tron` | 728126428 | TRX | USDT, USDC | 6 | 4 | [tronscan.org](https://tronscan.org) |
-| Bitcoin | `btc` | — | BTC | — | 8 | 8 | [mempool.space](https://mempool.space) |
+| Ethereum | `evm` | 1 | ETH | USDT, USDC | 28 | 28 | [etherscan.io](https://etherscan.io) |
+| BNB Smart Chain | `evm` | 56 | BNB | USDT, USDC | 34 | 22 | [bscscan.com](https://bscscan.com) |
+| Polygon PoS | `evm` | 137 | POL | USDT, USDC, USDC.e | 18 | 14 | [polygonscan.com](https://polygonscan.com) |
+| Base | `evm` | 8453 | ETH | USDC, USDT | 22 | 20 | [basescan.org](https://basescan.org) |
+| TRON | `tron` | 728126428 | TRX | USDT, USDC | 5 | 3 | [tronscan.org](https://tronscan.org) |
+| Bitcoin | `btc` | — | BTC | — | 7 | 7 | [mempool.space](https://mempool.space) |
 
-Todos los endpoints del registro (v4, septiembre 2026) fueron verificados uno a uno con `eth_chainId` + `eth_blockNumber` + `eth_getBalance` (EVM), `/wallet/getnowblock` (TRON) o `/blocks/tip/height` + `/address/*/utxo` (Bitcoin) antes de entrar. En BSC varios "operadores" son los dataseeds oficiales de BNB Chain repartidos entre `bnbchain`, `defibit`, `ninicoin` y `nariox`.
+Todos los endpoints del registro (v4, septiembre 2026) fueron verificados uno a uno desde dos redes distintas (local y runners de GitHub) con `eth_chainId` + `eth_blockNumber` + `eth_getBalance` (EVM), `/wallet/getnowblock` (TRON) o `/blocks/tip/height` + `/address/*/utxo` (Bitcoin) antes de entrar. En BSC varios "operadores" son los dataseeds oficiales de BNB Chain repartidos entre `bnbchain`, `defibit`, `ninicoin` y `nariox`.
 
-**Por qué TRON y Bitcoin tienen menos:** no es falta de búsqueda, es el ecosistema. Fuera de TronGrid/TronStack/PublicNode casi nadie expone la API HTTP de full node de TRON sin API key; los tres endpoints `api: "jsonrpc"` de TRON (TronGrid, PublicNode, dRPC) son **solo lectura** (el JSON-RPC de TRON no implementa `eth_sendRawTransaction`), por eso van con prioridad ≥ 100 y una wallet debe usarlos únicamente para consultar saldos y bloques. En Bitcoin solo existen ~10 instancias Esplora públicas completas en toda la red (con índice de direcciones y broadcast); las demás API públicas (Blockbook de Trezor/Atomic, Bitcore de BitPay, blockchain.info, Blockchair, BlockCypher, JSON-RPC de Bitcoin Core) usan otros formatos y entrarían solo si el registro añade nuevos valores de `api`.
+**Por qué TRON y Bitcoin tienen menos:** no es falta de búsqueda, es el ecosistema. Fuera de TronGrid/TronStack/PublicNode casi nadie expone la API HTTP de full node de TRON sin API key; los dos endpoints `api: "jsonrpc"` de TRON (TronGrid, PublicNode) son **solo lectura** (el JSON-RPC de TRON no implementa `eth_sendRawTransaction`), por eso van con prioridad ≥ 100 y una wallet debe usarlos únicamente para consultar saldos y bloques. En Bitcoin solo existen ~10 instancias Esplora públicas completas en toda la red (con índice de direcciones y broadcast); las demás API públicas (Blockbook de Trezor/Atomic, Bitcore de BitPay, blockchain.info, Blockchair, BlockCypher, JSON-RPC de Bitcoin Core) usan otros formatos y entrarían solo si el registro añade nuevos valores de `api`.
 
 ## 🧭 Cómo funciona
 
@@ -52,6 +52,7 @@ Todos los endpoints del registro (v4, septiembre 2026) fueron verificados uno a 
 - **Sin API keys.** Aquí no hay y nunca las habrá. Si un proveedor las exige, no entra al registro.
 - **`api`** indica el protocolo del endpoint: `jsonrpc` (EVM), `trongrid` (TRON) o `esplora` (Bitcoin). Si se omite, se infiere del `kind` de la cadena. En TRON un endpoint `jsonrpc` es de solo lectura.
 - **Al menos 2 operadores distintos** entre los públicos habilitados de cada cadena, para que la caída de un proveedor no tumbe la cadena.
+- **`--strict` bloquea solo lo nuevo.** En cada PR un endpoint caído es error únicamente si no existía ya en `main`; los que ya estaban y fallan se avisan y los vigila el cron de 6 h, que abre issue si una cadena se queda sin 2 sanos. Así un 429 puntual de un proveedor no bloquea PRs ajenas.
 - **Un nodo parado cuenta como caído.** Si responde pero va más de 20 bloques por detrás de la mediana de la cadena, el check lo trata igual que a uno muerto: para una wallet un nodo con saldos viejos es peor que uno sin respuesta.
 - **Sin keys embebidas.** El check rechaza URLs con `?api_key=`, `?token=`, hashes de 32 hex o UUIDs en el path: son tokens "públicos" de terceros que pueden revocarse en cualquier momento. Por eso no están GetBlock shared, NodeReal `/v1/<key>`, Dwellir, RPCFast ni LeoRPC (`api_key=FREE`).
 
@@ -184,6 +185,9 @@ Las PRs son bienvenidas: añadir un RPC público confiable, corregir un contrato
 | routeme.sh, satelink, nodeflare, keccak, chainstack public, rpcfast, tatum en Base | Rate limit o 402/403 sin key. |
 | SubQuery public, stakely (salvo ETH), blockpi (salvo ETH/Base), swiftnodes en Polygon | No resuelven, 404/521 o fallan intermitentemente. |
 | mempool.emzy.de | Instancia completa y muy citada como fallback, pero su throttle por IP hace fallar el check con 3 intentos; candidata a volver si el CI la tolera. |
+| Uniblock (`api.uniblock.dev`) | Agregador: desde el CI enrutó BSC a un backend 57k bloques parado. Un agregador que puede servir estado viejo no vale para una wallet. |
+| dRPC en TRON (`tron.drpc.org`) | JSON-RPC intermitente: "Temporary internal error" y 400 según la IP. |
+| btcscan.org | Esplora completo, pero Cloudflare deja colgadas las peticiones desde IPs de datacenter. |
 | Bull Bitcoin mempool | Capó `/address/*/utxo` a 0 UTXOs: inservible para una wallet. |
 | DIYNodes mempool | Sin índice de direcciones (404 en `/address/*/utxo`). |
 | Bisq mempool, mempool.bitcoin.builders, mempoolx.space | DNS o TLS muertos. |
