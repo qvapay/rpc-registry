@@ -7,7 +7,7 @@
 [![check](https://github.com/qvapay/rpc-registry/actions/workflows/ci.yml/badge.svg)](https://github.com/qvapay/rpc-registry/actions/workflows/ci.yml)
 [![registry version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqvapay%2Frpc-registry%2Fmain%2Fregistry.json&query=%24.version&label=registry&color=blue)](registry.json)
 [![chains](https://img.shields.io/badge/chains-8-8A2BE2)](#-cadenas-soportadas)
-[![endpoints](https://img.shields.io/badge/endpoints-125-orange)](#-cadenas-soportadas)
+[![endpoints](https://img.shields.io/badge/endpoints-128-orange)](#-cadenas-soportadas)
 [![jsDelivr hits](https://data.jsdelivr.com/v1/package/gh/qvapay/rpc-registry/badge)](https://www.jsdelivr.com/package/gh/qvapay/rpc-registry)
 [![last commit](https://img.shields.io/github/last-commit/qvapay/rpc-registry)](https://github.com/qvapay/rpc-registry/commits/main)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#-contribuir)
@@ -39,8 +39,12 @@ Sin API keys. Sin backend. Sin sorpresas.
 | Base | `evm` | 8453 | ETH | USDC, USDT | 22 | 20 | [basescan.org](https://basescan.org) |
 | TRON | `tron` | 728126428 | TRX | USDT, USDC | 5 | 3 | [tronscan.org](https://tronscan.org) |
 | Bitcoin | `btc` | — | BTC | — | 6 | 6 | [mempool.space](https://mempool.space) |
+| Stacks | `stacks` | — | STX | QUSD | 3 | 2 | [explorer.hiro.so](https://explorer.hiro.so) |
+| Solana | `solana` | — | SOL | USDT, USDC | 5 | 5 | [solscan.io](https://solscan.io) |
 
-Todos los endpoints del registro (v7, septiembre 2026) fueron verificados uno a uno desde dos redes distintas (local y runners de GitHub) con `eth_chainId` + `eth_blockNumber` + `eth_getBalance` (EVM), `/wallet/getnowblock` (TRON), `/blocks/tip/height` + `/address/*/utxo` (Bitcoin), `/v2/info` (Stacks) o `getHealth` + `getSlot` (Solana) antes de entrar. En BSC varios "operadores" son los dataseeds oficiales de BNB Chain repartidos entre `bnbchain`, `defibit`, `ninicoin` y `nariox`.
+Todos los endpoints del registro (v8, septiembre 2026) fueron verificados uno a uno desde dos redes distintas (local y runners de GitHub) con `eth_chainId` + `eth_blockNumber` + `eth_getBalance` (EVM), `/wallet/getnowblock` (TRON), `/blocks/tip/height` + `/address/*/utxo` (Bitcoin), `/v2/info` (Stacks) o `getHealth` + `getSlot` (Solana) antes de entrar. En BSC varios "operadores" son los dataseeds oficiales de BNB Chain repartidos entre `bnbchain`, `defibit`, `ninicoin` y `nariox`.
+
+**Por qué Solana tiene solo 5:** casi todo el ecosistema de RPC de Solana es de pago o con key (Helius, QuickNode, Triton, Syndica, Alchemy, dRPC, Chainstack...). Los públicos sin key que quedan son la Fundación, PublicNode, Solana Tracker, ZAN y Solana Vibe Station. Este último limita a ~1 petición concurrente por IP (una ráfaga de 6 `getSlot` devuelve 429 en la mitad), por eso va el último: sirve como fallback, no como primario.
 
 **Por qué TRON y Bitcoin tienen menos:** no es falta de búsqueda, es el ecosistema. Fuera de TronGrid/TronStack/PublicNode casi nadie expone la API HTTP de full node de TRON sin API key; los dos endpoints `api: "jsonrpc"` de TRON (TronGrid, PublicNode) son **solo lectura** (el JSON-RPC de TRON no implementa `eth_sendRawTransaction`), por eso van con prioridad ≥ 100 y una wallet debe usarlos únicamente para consultar saldos y bloques. En Bitcoin solo existen ~10 instancias Esplora públicas completas en toda la red (con índice de direcciones y broadcast); las demás API públicas (Blockbook de Trezor/Atomic, Bitcore de BitPay, blockchain.info, Blockchair, BlockCypher, JSON-RPC de Bitcoin Core) usan otros formatos y entrarían solo si el registro añade nuevos valores de `api`.
 
@@ -199,6 +203,13 @@ Las PRs son bienvenidas: añadir un RPC público confiable, corregir un contrato
 | DIYNodes mempool | Sin índice de direcciones (404 en `/address/*/utxo`). |
 | Bisq mempool, mempool.bitcoin.builders, mempoolx.space | DNS o TLS muertos. |
 | mempool.guide | Es la cadena fork BIP-110, no Bitcoin mainnet. |
+| dRPC en Solana (`solana.drpc.org`) | "chain is not available on free plan" (400). |
+| Tatum en Solana (`solana-mainnet.gateway.tatum.io`) | Responde, pero `getBalance` "is available for paid plans only": inservible para una wallet. |
+| OnFinality en Solana (`solana.api.onfinality.io/public`) | 429 "apply an OnFinality API key" al primer intento. |
+| Alchemy `/public` en Solana | 403/401: el público documentado no existe para Solana. |
+| Triton (`free.rpcpool.com`, `mainnet.rpcpool.com`) | 403 sin key. |
+| 1RPC, BlockPI, Blast, Pocket, Stakely, Nodies, Omnia, SubQuery en Solana | No ofrecen Solana pública: "unknown network", 404, 503 o DNS muerto. |
+| `solana-api.projectserum.com`, `api.metaplex.solana.com`, `ssc-dao.genesysgo.net`, extrnode | Endpoints históricos ya muertos; la lista de extrnode son IPs sin TLS con versiones 1.10. |
 
 </details>
 
