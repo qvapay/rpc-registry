@@ -1,7 +1,7 @@
 {
   "$schema": "./schema.json",
-  "version": 7,
-  "updated_at": "2026-09-22T02:37:06Z",
+  "version": 8,
+  "updated_at": "2026-09-22T03:20:00Z",
   "chains": {
     "ethereum": {
       "kind": "evm",
@@ -824,6 +824,21 @@
           "url": "https://solana-rpc.publicnode.com",
           "priority": 20,
           "owner": "publicnode"
+        },
+        {
+          "url": "https://rpc.solanatracker.io/public",
+          "priority": 30,
+          "owner": "solanatracker"
+        },
+        {
+          "url": "https://api.zan.top/solana-mainnet",
+          "priority": 40,
+          "owner": "zan"
+        },
+        {
+          "url": "https://public.rpc.solanavibestation.com",
+          "priority": 50,
+          "owner": "solanavibestation"
         }
       ]
     }
