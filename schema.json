@@ -21,7 +21,7 @@
       "required": ["kind", "name", "native", "explorer", "tokens", "rpcs"],
       "additionalProperties": false,
       "properties": {
-        "kind": { "enum": ["evm", "tron", "btc"] },
+        "kind": { "enum": ["evm", "tron", "btc", "stacks", "solana"] },
         "chainId": { "type": "integer", "minimum": 1 },
         "name": { "type": "string", "minLength": 1 },
         "native": { "$ref": "#/$defs/asset" },
@@ -61,7 +61,7 @@
         "priority": { "type": "integer", "minimum": 0, "maximum": 1000 },
         "owner": { "type": "string", "minLength": 1 },
         "enabled": { "type": "boolean", "default": true },
-        "api": { "enum": ["jsonrpc", "trongrid", "esplora"] },
+        "api": { "enum": ["jsonrpc", "trongrid", "esplora", "hiro", "solana"] },
         "headers": { "type": "object", "additionalProperties": { "type": "string" } }
       }
     }

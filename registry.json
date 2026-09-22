@@ -1,7 +1,7 @@
 {
   "$schema": "./schema.json",
-  "version": 4,
-  "updated_at": "2026-09-08T17:15:23Z",
+  "version": 7,
+  "updated_at": "2026-09-22T02:37:06Z",
   "chains": {
     "ethereum": {
       "kind": "evm",
@@ -742,6 +742,88 @@
           "priority": 60,
           "owner": "bitcoin-21",
           "api": "esplora"
+        }
+      ]
+    },
+    "stacks": {
+      "kind": "stacks",
+      "name": "Stacks",
+      "native": {
+        "symbol": "STX",
+        "decimals": 6
+      },
+      "explorer": "https://explorer.hiro.so/txid/{tx}?chain=mainnet",
+      "tokens": [
+        {
+          "symbol": "QUSD",
+          "address": "SP14CTSJZNKZ7YTR6C84368J2QXRW8RC20GSQ8KS2.QUSD::QUSD",
+          "decimals": 8
+        }
+      ],
+      "rpcs": [
+        {
+          "url": "https://stx.qvapay.com",
+          "priority": 0,
+          "owner": "qvapay",
+          "enabled": false,
+          "api": "hiro"
+        },
+        {
+          "url": "https://api.hiro.so",
+          "priority": 10,
+          "owner": "hiro",
+          "api": "hiro"
+        },
+        {
+          "url": "https://api.mainnet.hiro.so",
+          "priority": 20,
+          "owner": "hiro",
+          "api": "hiro"
+        },
+        {
+          "url": "https://stacks-node-api.stacks.co",
+          "priority": 30,
+          "owner": "stacks-foundation",
+          "api": "hiro"
+        }
+      ]
+    },
+    "solana": {
+      "kind": "solana",
+      "name": "Solana",
+      "native": {
+        "symbol": "SOL",
+        "decimals": 9
+      },
+      "explorer": "https://solscan.io/tx/{tx}",
+      "tokens": [
+        {
+          "symbol": "USDT",
+          "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+          "decimals": 6
+        },
+        {
+          "symbol": "USDC",
+          "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "decimals": 6
+        }
+      ],
+      "rpcs": [
+        {
+          "url": "https://sol.qvapay.com",
+          "priority": 0,
+          "owner": "qvapay",
+          "enabled": true
+        },
+        {
+          "url": "https://api.mainnet-beta.solana.com",
+          "priority": 10,
+          "owner": "solana-foundation"
+        },
+        {
+          "url": "https://solana-rpc.publicnode.com",
+          "priority": 20,
+          "owner": "publicnode"
         }
       ]
     }
