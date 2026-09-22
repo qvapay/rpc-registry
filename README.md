@@ -6,8 +6,8 @@
 
 [![check](https://github.com/qvapay/rpc-registry/actions/workflows/ci.yml/badge.svg)](https://github.com/qvapay/rpc-registry/actions/workflows/ci.yml)
 [![registry version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqvapay%2Frpc-registry%2Fmain%2Fregistry.json&query=%24.version&label=registry&color=blue)](registry.json)
-[![chains](https://img.shields.io/badge/chains-6-8A2BE2)](#-cadenas-soportadas)
-[![endpoints](https://img.shields.io/badge/endpoints-112-orange)](#-cadenas-soportadas)
+[![chains](https://img.shields.io/badge/chains-8-8A2BE2)](#-cadenas-soportadas)
+[![endpoints](https://img.shields.io/badge/endpoints-125-orange)](#-cadenas-soportadas)
 [![jsDelivr hits](https://data.jsdelivr.com/v1/package/gh/qvapay/rpc-registry/badge)](https://www.jsdelivr.com/package/gh/qvapay/rpc-registry)
 [![last commit](https://img.shields.io/github/last-commit/qvapay/rpc-registry)](https://github.com/qvapay/rpc-registry/commits/main)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#-contribuir)
@@ -40,7 +40,7 @@ Sin API keys. Sin backend. Sin sorpresas.
 | TRON | `tron` | 728126428 | TRX | USDT, USDC | 5 | 3 | [tronscan.org](https://tronscan.org) |
 | Bitcoin | `btc` | — | BTC | — | 6 | 6 | [mempool.space](https://mempool.space) |
 
-Todos los endpoints del registro (v4, septiembre 2026) fueron verificados uno a uno desde dos redes distintas (local y runners de GitHub) con `eth_chainId` + `eth_blockNumber` + `eth_getBalance` (EVM), `/wallet/getnowblock` (TRON) o `/blocks/tip/height` + `/address/*/utxo` (Bitcoin) antes de entrar. En BSC varios "operadores" son los dataseeds oficiales de BNB Chain repartidos entre `bnbchain`, `defibit`, `ninicoin` y `nariox`.
+Todos los endpoints del registro (v7, septiembre 2026) fueron verificados uno a uno desde dos redes distintas (local y runners de GitHub) con `eth_chainId` + `eth_blockNumber` + `eth_getBalance` (EVM), `/wallet/getnowblock` (TRON), `/blocks/tip/height` + `/address/*/utxo` (Bitcoin), `/v2/info` (Stacks) o `getHealth` + `getSlot` (Solana) antes de entrar. En BSC varios "operadores" son los dataseeds oficiales de BNB Chain repartidos entre `bnbchain`, `defibit`, `ninicoin` y `nariox`.
 
 **Por qué TRON y Bitcoin tienen menos:** no es falta de búsqueda, es el ecosistema. Fuera de TronGrid/TronStack/PublicNode casi nadie expone la API HTTP de full node de TRON sin API key; los dos endpoints `api: "jsonrpc"` de TRON (TronGrid, PublicNode) son **solo lectura** (el JSON-RPC de TRON no implementa `eth_sendRawTransaction`), por eso van con prioridad ≥ 100 y una wallet debe usarlos únicamente para consultar saldos y bloques. En Bitcoin solo existen ~10 instancias Esplora públicas completas en toda la red (con índice de direcciones y broadcast); las demás API públicas (Blockbook de Trezor/Atomic, Bitcore de BitPay, blockchain.info, Blockchair, BlockCypher, JSON-RPC de Bitcoin Core) usan otros formatos y entrarían solo si el registro añade nuevos valores de `api`.
 
@@ -50,11 +50,16 @@ Todos los endpoints del registro (v4, septiembre 2026) fueron verificados uno a 
 - **`owner: qvapay`** son nuestros propios nodos. Entran siempre con `priority: 0` y `enabled: false`; se activan con un commit cuando estén listos.
 - **Mínimo 2 públicos habilitados** por cadena, siempre. El CI no deja mergear si esa regla se rompe o si alguno no responde.
 - **Sin API keys.** Aquí no hay y nunca las habrá. Si un proveedor las exige, no entra al registro.
-- **`api`** indica el protocolo del endpoint: `jsonrpc` (EVM), `trongrid` (TRON) o `esplora` (Bitcoin). Si se omite, se infiere del `kind` de la cadena. En TRON un endpoint `jsonrpc` es de solo lectura.
+- **`api`** indica el protocolo del endpoint: `jsonrpc` (EVM), `trongrid` (TRON), `esplora` (Bitcoin), `hiro` (Stacks) o `solana`. Si se omite, se infiere del `kind` de la cadena. En TRON un endpoint `jsonrpc` es de solo lectura.
 - **Al menos 2 operadores distintos** entre los públicos habilitados de cada cadena, para que la caída de un proveedor no tumbe la cadena.
 - **`--strict` bloquea solo lo nuevo.** En cada PR un endpoint caído es error únicamente si no existía ya en `main`; los que ya estaban y fallan se avisan y los vigila el cron de 6 h, que abre issue si una cadena se queda sin 2 sanos. Así un 429 puntual de un proveedor no bloquea PRs ajenas.
 - **Un nodo parado cuenta como caído.** Si responde pero va más de 20 bloques por detrás de la mediana de la cadena, el check lo trata igual que a uno muerto: para una wallet un nodo con saldos viejos es peor que uno sin respuesta.
 - **Sin keys embebidas.** El check rechaza URLs con `?api_key=`, `?token=`, hashes de 32 hex o UUIDs en el path: son tokens "públicos" de terceros que pueden revocarse en cualquier momento. Por eso no están GetBlock shared, NodeReal `/v1/<key>`, Dwellir, RPCFast ni LeoRPC (`api_key=FREE`).
+
+- **La sonda manda el `User-Agent` de la app.** Sin ninguno, muchos endpoints detrás de
+  Cloudflare devuelven 403 al runner y el informe los daba por escudados aunque para la app
+  funcionen: en Base eran 14 de 22. La sonda tiene que medir lo que vive la wallet, no lo
+  que vive el CI.
 
 <details>
 <summary><b>Ejemplo de una cadena en <code>registry.json</code></b></summary>
@@ -209,7 +214,7 @@ Este repositorio controla a qué nodos se conecta una wallet con fondos reales. 
 
 ## 🗺️ Roadmap
 
-- [x] ≥ 20 RPCs públicos verificados por cadena EVM (v4, septiembre 2026).
+- [x] ≥ 20 RPCs públicos verificados por cadena EVM (v7, septiembre 2026).
 - [ ] Activar los nodos `owner: qvapay` cadena por cadena (hoy no hay hardware propio; el registro funciona solo con públicos).
 - [ ] Más endpoints para TRON y Bitcoin: evaluar añadir `api: "blockbook"` (Trezor, Atomic) y JSON-RPC de Bitcoin Core (PublicNode, dRPC, NOWNodes) para ampliar Bitcoin, y buscar operadores de full node TRON sin key.
 - [ ] Publicar métricas de latencia y lag de los health checks.

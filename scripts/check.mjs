@@ -31,6 +31,19 @@ const CONCURRENCY = 6;
 const MAX_RETRY_AFTER_MS = 10000;
 const ESPLORA_PROBE_ADDRESS = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"; // vector de prueba de BIP-173, casi sin UTXOs
 
+// Dialecto de sondeo por familia. Antes cualquier kind que no fuera evm ni tron caía en
+// "esplora", así que stacks y solana se sondeaban pidiendo /blocks/tip/height y salían
+// caídas siempre: el registro remoto llevaba dos versiones sin poder validarlas.
+const DEFAULT_API = { evm: "jsonrpc", tron: "trongrid", btc: "esplora", stacks: "hiro", solana: "solana" };
+
+// La app móvil habla por fetch de React Native, que manda un User-Agent normal. Sin
+// ninguno, muchos proveedores detrás de Cloudflare devuelven 403 a esta sonda y el
+// informe los cuenta como escudados cuando para la app funcionan perfectamente —
+// medido en Base: 14 de 22 nodos sanos aparecían como bloqueados. La sonda tiene que
+// medir lo que vive la app, no lo que vive el runner de CI.
+const PROBE_UA = "okhttp/4.12.0";
+const probeHeaders = (rpc, extra = {}) => ({ "user-agent": PROBE_UA, ...extra, ...(rpc.headers ?? {}) });
+
 const registry = JSON.parse(await readFile(new URL("../registry.json", import.meta.url), "utf8"));
 const baselineUrls = new Set();
 if (BASELINE_PATH) {
@@ -109,14 +122,14 @@ async function withTimeout(p) {
 }
 
 async function probe(chainId, chain, rpc) {
-  const api = rpc.api ?? (chain.kind === "evm" ? "jsonrpc" : chain.kind === "tron" ? "trongrid" : "esplora");
+  const api = rpc.api ?? DEFAULT_API[chain.kind] ?? "esplora";
   const started = Date.now();
   return withTimeout(async (signal) => {
     if (api === "jsonrpc") {
       const call = async (method, id) => {
         const res = await fetch(rpc.url, {
           method: "POST", signal,
-          headers: { "content-type": "application/json", ...(rpc.headers ?? {}) },
+          headers: probeHeaders(rpc, { "content-type": "application/json" }),
           body: JSON.stringify({ jsonrpc: "2.0", id, method, params: [] }),
         });
         if (!res.ok) throw classify(res) ?? new Error(`HTTP ${res.status}`);
@@ -131,7 +144,7 @@ async function probe(chainId, chain, rpc) {
       return { height, ms: Date.now() - started };
     }
     if (api === "trongrid") {
-      const res = await fetch(`${rpc.url}/wallet/getnowblock`, { method: "POST", signal, headers: rpc.headers ?? {} });
+      const res = await fetch(`${rpc.url}/wallet/getnowblock`, { method: "POST", signal, headers: probeHeaders(rpc) });
       if (!res.ok) throw classify(res) ?? new Error(`HTTP ${res.status}`);
       const j = await res.json();
       const h = j?.block_header?.raw_data?.number;
@@ -139,15 +152,43 @@ async function probe(chainId, chain, rpc) {
       return { height: h, ms: Date.now() - started };
     }
     if (api === "esplora") {
-      const res = await fetch(`${rpc.url}/blocks/tip/height`, { signal, headers: rpc.headers ?? {} });
+      const res = await fetch(`${rpc.url}/blocks/tip/height`, { signal, headers: probeHeaders(rpc) });
       if (!res.ok) throw classify(res) ?? new Error(`HTTP ${res.status}`);
       const h = parseInt(await res.text(), 10);
       if (!Number.isFinite(h)) throw new Error("tip inválido");
       // Una wallet necesita el índice por dirección: hay instancias que sirven el tip pero
       // no /address/*/utxo (o lo capan a 0 UTXOs). Dirección con muy pocos UTXOs a propósito.
-      const utxo = await fetch(`${rpc.url}/address/${ESPLORA_PROBE_ADDRESS}/utxo`, { signal, headers: rpc.headers ?? {} });
+      const utxo = await fetch(`${rpc.url}/address/${ESPLORA_PROBE_ADDRESS}/utxo`, { signal, headers: probeHeaders(rpc) });
       if (!utxo.ok) throw classify(utxo) ?? new Error(`sin índice de direcciones (HTTP ${utxo.status} en /address/*/utxo)`);
       if (!Array.isArray(await utxo.json())) throw new Error("respuesta inválida en /address/*/utxo");
+      return { height: h, ms: Date.now() - started };
+    }
+    if (api === "solana") {
+      // getHealth responde 200 con {error} si el nodo va atrasado: eso es estar caído
+      // para una wallet, que mostraría saldos viejos y firmaría con blockhash muerto.
+      const call = async (method, id) => {
+        const res = await fetch(rpc.url, {
+          method: "POST", signal,
+          headers: probeHeaders(rpc, { "content-type": "application/json" }),
+          body: JSON.stringify({ jsonrpc: "2.0", id, method }),
+        });
+        if (!res.ok) throw classify(res) ?? new Error(`HTTP ${res.status}`);
+        const j = await res.json();
+        if (j?.error) throw new Error(`rpc error: ${j.error.message ?? JSON.stringify(j.error)}`);
+        return j?.result;
+      };
+      const [health, slot] = await Promise.all([call("getHealth", 1), call("getSlot", 2)]);
+      if (health !== "ok") throw new Error(`getHealth devolvió ${JSON.stringify(health)}`);
+      if (!Number.isFinite(slot)) throw new Error("slot inválido");
+      // El slot hace de altura: sirve igual para detectar un nodo rezagado
+      return { height: slot, ms: Date.now() - started };
+    }
+    if (api === "hiro") {
+      const res = await fetch(`${rpc.url}/v2/info`, { signal, headers: probeHeaders(rpc) });
+      if (!res.ok) throw classify(res) ?? new Error(`HTTP ${res.status}`);
+      const j = await res.json();
+      const h = j?.stacks_tip_height;
+      if (!Number.isFinite(h)) throw new Error("sin stacks_tip_height");
       return { height: h, ms: Date.now() - started };
     }
     throw new Error(`api desconocida ${api}`);
