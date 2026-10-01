@@ -1,7 +1,7 @@
 {
   "$schema": "./schema.json",
-  "version": 8,
-  "updated_at": "2026-09-22T03:20:00Z",
+  "version": 9,
+  "updated_at": "2026-10-01T03:25:09Z",
   "chains": {
     "ethereum": {
       "kind": "evm",
@@ -658,8 +658,7 @@
         {
           "url": "https://tron.qvapay.com",
           "priority": 0,
-          "owner": "qvapay",
-          "enabled": false
+          "owner": "qvapay"
         },
         {
           "url": "https://api.trongrid.io",
