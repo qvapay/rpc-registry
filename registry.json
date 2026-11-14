@@ -1,7 +1,7 @@
 {
   "$schema": "./schema.json",
-  "version": 10,
-  "updated_at": "2026-10-03T06:19:06Z",
+  "version": 11,
+  "updated_at": "2026-11-14T20:35:05Z",
   "chains": {
     "ethereum": {
       "kind": "evm",
@@ -29,7 +29,7 @@
           "url": "https://eth.qvapay.com",
           "priority": 0,
           "owner": "qvapay",
-          "enabled": false
+          "enabled": true
         },
         {
           "url": "https://ethereum-rpc.publicnode.com",
@@ -194,7 +194,7 @@
           "url": "https://bsc.qvapay.com",
           "priority": 0,
           "owner": "qvapay",
-          "enabled": false
+          "enabled": true
         },
         {
           "url": "https://bsc-dataseed.bnbchain.org",
