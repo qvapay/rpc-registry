@@ -1,7 +1,7 @@
 {
   "$schema": "./schema.json",
-  "version": 12,
-  "updated_at": "2026-11-17T00:57:08Z",
+  "version": 13,
+  "updated_at": "2026-11-17T01:47:01Z",
   "chains": {
     "ethereum": {
       "kind": "evm",
@@ -394,7 +394,7 @@
           "url": "https://pol.qvapay.com",
           "priority": 0,
           "owner": "qvapay",
-          "enabled": false
+          "enabled": true
         },
         {
           "url": "https://polygon-bor-rpc.publicnode.com",
