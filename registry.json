@@ -1,7 +1,7 @@
 {
   "$schema": "./schema.json",
-  "version": 11,
-  "updated_at": "2026-11-14T20:35:05Z",
+  "version": 12,
+  "updated_at": "2026-11-17T00:57:08Z",
   "chains": {
     "ethereum": {
       "kind": "evm",
@@ -391,7 +391,7 @@
       ],
       "rpcs": [
         {
-          "url": "https://polygon.qvapay.com",
+          "url": "https://pol.qvapay.com",
           "priority": 0,
           "owner": "qvapay",
           "enabled": false
@@ -514,7 +514,7 @@
           "url": "https://base.qvapay.com",
           "priority": 0,
           "owner": "qvapay",
-          "enabled": false
+          "enabled": true
         },
         {
           "url": "https://mainnet.base.org",
