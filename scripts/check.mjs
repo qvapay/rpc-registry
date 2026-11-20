@@ -36,11 +36,14 @@ const ESPLORA_PROBE_ADDRESS = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"; // v
 // quita de aquí y el nodo vuelve a priority 0. La excepción vive en el check y no en registry.json
 // para que el JSON que descargan las wallets no cambie de forma.
 const OWN_BACKUP = new Map([
-  // Su índice por dirección sigue el mempool por tandas: un pago recién difundido tarda hasta
-  // ~1 min en salir en el saldo y en los UTXOs de la dirección (en mempool.space, 1-2 s). De
-  // primero, quien recibe lo vería tarde y una wallet podría armar un segundo envío con monedas
-  // que acaba de gastar. Medido el 2026-11-18: entre 6 y 61 s en 13 pagos.
-  ["https://btc.qvapay.com/api", "su índice por dirección va hasta ~1 min por detrás del mempool"],
+  // Su índice por dirección sigue el mempool por tandas: un pago recién difundido tarda en torno
+  // a 1 min en salir en el saldo y en los UTXOs de la dirección (mempool.space y blockstream.info,
+  // segundos). De primero, quien recibe lo vería tarde y una wallet podría armar un segundo envío
+  // con monedas que acaba de gastar. Medido el 2026-11-18 (entre 6 y 61 s en 13 pagos) y el
+  // 2026-11-20 (entre 55 y 68 s en 3). Ese día, además, no conocía 6 de 7 transacciones que
+  // pagaban menos de 1 sat/vB y seguían pendientes: un pago así no se ve hasta que se mina. Por
+  // las dos cosas va detrás de los dos públicos grandes, que sí van al día.
+  ["https://btc.qvapay.com/api", "su índice por dirección va ~1 min por detrás del mempool"],
 ]);
 
 // Dialecto de sondeo por familia. Antes cualquier kind que no fuera evm ni tron caía en

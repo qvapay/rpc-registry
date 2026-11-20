@@ -1,7 +1,7 @@
 {
   "$schema": "./schema.json",
   "version": 14,
-  "updated_at": "2026-11-20T20:54:32Z",
+  "updated_at": "2026-11-20T21:33:35Z",
   "chains": {
     "ethereum": {
       "kind": "evm",
@@ -701,16 +701,16 @@
           "api": "esplora"
         },
         {
-          "url": "https://btc.qvapay.com/api",
-          "priority": 15,
-          "owner": "qvapay",
-          "enabled": true,
-          "api": "esplora"
-        },
-        {
           "url": "https://blockstream.info/api",
           "priority": 20,
           "owner": "blockstream",
+          "api": "esplora"
+        },
+        {
+          "url": "https://btc.qvapay.com/api",
+          "priority": 25,
+          "owner": "qvapay",
+          "enabled": true,
           "api": "esplora"
         },
         {
