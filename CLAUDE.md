@@ -34,7 +34,8 @@ Three files and one workflow:
 
 ### Business rules enforced by check.mjs (not by the schema)
 
-- Every chain has at least one `owner: "qvapay"` endpoint, and all of them have `priority: 0`. These are our own nodes; they usually ship with `enabled: false` and get flipped on by a commit when the hardware is ready.
+- Every chain has at least one `owner: "qvapay"` endpoint. These are our own nodes: they go first (`priority: 0`), usually ship with `enabled: false` and get flipped on by a commit when the node is ready.
+- The one exception to `priority: 0` is an own node listed in `OWN_BACKUP` (in `check.mjs`, each entry with its reason): it is a **backup**, and its `priority` must be higher than the first enabled public endpoint's. Today that is only `btc.qvapay.com`, whose address index trails the mempool by up to about a minute, so wallets read from an up-to-date public node first and fall back to ours. An `OWN_BACKUP` entry that names no `qvapay` endpoint of the registry is an error. When the reason is gone, remove the entry and put the node back at `priority: 0`. The exception lives in the check, not in `registry.json`, so the JSON that wallets download keeps its shape.
 - At least 2 **enabled public** (non-qvapay) endpoints per chain, from at least 2 distinct `owner` values.
 - No embedded API keys: URLs with `?api_key=`/`?token=`/`?key=`, a 32-hex segment after `/vN/`, or a UUID in the path are rejected. HTTPS only (schema).
 - No duplicate URLs within a chain.

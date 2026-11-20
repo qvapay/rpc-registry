@@ -52,6 +52,7 @@ Todos los endpoints del registro (v8, septiembre 2026) fueron verificados uno a 
 
 - **`priority` menor gana.** La wallet intenta los endpoints en ese orden y hace failover al siguiente si uno falla.
 - **`owner: qvapay`** son nuestros propios nodos. Entran siempre con `priority: 0` y `enabled: false`; se activan con un commit cuando estén listos.
+- **Un nodo propio puede ir de respaldo.** Es la única excepción a la `priority: 0`: lleva una `priority` mayor que la del primer público habilitado y consta, con su motivo, en `OWN_BACKUP` de [`scripts/check.mjs`](scripts/check.mjs). Hoy solo el de Bitcoin: su índice por dirección refleja el mempool con hasta ~1 minuto de retraso, así que la wallet lee primero de un público que va al día y pasa al nuestro cuando ese falla.
 - **Mínimo 2 públicos habilitados** por cadena, siempre. El CI no deja mergear si esa regla se rompe o si alguno no responde.
 - **Sin API keys.** Aquí no hay y nunca las habrá. Si un proveedor las exige, no entra al registro.
 - **`api`** indica el protocolo del endpoint: `jsonrpc` (EVM), `trongrid` (TRON), `esplora` (Bitcoin), `hiro` (Stacks) o `solana`. Si se omite, se infiere del `kind` de la cadena. En TRON un endpoint `jsonrpc` es de solo lectura.
