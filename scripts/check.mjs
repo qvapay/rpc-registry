@@ -31,6 +31,21 @@ const CONCURRENCY = 6;
 const MAX_RETRY_AFTER_MS = 10000;
 const ESPLORA_PROBE_ADDRESS = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"; // vector de prueba de BIP-173, casi sin UTXOs
 
+// Un nodo propio va el primero (priority 0), salvo los de esta lista, que van de RESPALDO: detrás
+// de al menos un público habilitado. Cada entrada lleva su motivo; cuando deja de ser cierto se
+// quita de aquí y el nodo vuelve a priority 0. La excepción vive en el check y no en registry.json
+// para que el JSON que descargan las wallets no cambie de forma.
+const OWN_BACKUP = new Map([
+  // Su índice por dirección sigue el mempool por tandas: un pago recién difundido tarda en torno
+  // a 1 min en salir en el saldo y en los UTXOs de la dirección (mempool.space y blockstream.info,
+  // segundos). De primero, quien recibe lo vería tarde y una wallet podría armar un segundo envío
+  // con monedas que acaba de gastar. Medido el 2026-11-18 (entre 6 y 61 s en 13 pagos) y el
+  // 2026-11-20 (entre 55 y 68 s en 3). Ese día, además, no conocía 6 de 7 transacciones que
+  // pagaban menos de 1 sat/vB y seguían pendientes: un pago así no se ve hasta que se mina. Por
+  // las dos cosas va detrás de los dos públicos grandes, que sí van al día.
+  ["https://btc.qvapay.com/api", "su índice por dirección va ~1 min por detrás del mempool"],
+]);
+
 // Dialecto de sondeo por familia. Antes cualquier kind que no fuera evm ni tron caía en
 // "esplora", así que stacks y solana se sondeaban pidiendo /blocks/tip/height y salían
 // caídas siempre: el registro remoto llevaba dos versiones sin poder validarlas.
@@ -69,8 +84,15 @@ let bad = 0;
 for (const [id, chain] of Object.entries(registry.chains)) {
   const own = chain.rpcs.filter((r) => r.owner === "qvapay");
   if (own.length === 0) { console.error(`❌ ${id}: falta el endpoint owner=qvapay`); bad++; }
-  if (!own.every((r) => r.priority === 0)) { console.error(`❌ ${id}: los endpoints qvapay deben tener priority 0`); bad++; }
   const enabledPublic = chain.rpcs.filter((r) => r.enabled !== false && r.owner !== "qvapay");
+  const firstPublic = Math.min(...enabledPublic.map((r) => r.priority));
+  for (const r of own) {
+    if (!OWN_BACKUP.has(r.url)) {
+      if (r.priority !== 0) { console.error(`❌ ${id}: ${r.url} es un endpoint qvapay y debe tener priority 0 (o constar en OWN_BACKUP con su motivo)`); bad++; }
+    } else if (!(r.priority > firstPublic)) {
+      console.error(`❌ ${id}: ${r.url} va de respaldo (${OWN_BACKUP.get(r.url)}): su priority debe ser mayor que la del primer público habilitado (${firstPublic})`); bad++;
+    }
+  }
   if (enabledPublic.length < 2) { console.error(`❌ ${id}: se requieren al menos 2 RPCs públicos habilitados`); bad++; }
   const owners = new Set(enabledPublic.map((r) => r.owner));
   if (enabledPublic.length >= 2 && owners.size < 2) { console.error(`❌ ${id}: los públicos habilitados deben ser de al menos 2 operadores distintos`); bad++; }
@@ -84,6 +106,11 @@ for (const [id, chain] of Object.entries(registry.chains)) {
     if (urls.has(r.url)) { console.error(`❌ ${id}: URL duplicada ${r.url}`); bad++; }
     urls.add(r.url);
   }
+}
+// Una excepción que ya no nombra a ningún nodo propio es una excepción olvidada
+const ownUrls = new Set(Object.values(registry.chains).flatMap((c) => c.rpcs.filter((r) => r.owner === "qvapay").map((r) => r.url)));
+for (const url of OWN_BACKUP.keys()) {
+  if (!ownUrls.has(url)) { console.error(`❌ OWN_BACKUP nombra ${url}, que no es un endpoint qvapay del registro`); bad++; }
 }
 if (bad) process.exit(1);
 if (NO_NET) process.exit(0);
